@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Interactive Periodic Table</title>
+  <style>
+    :root{
+      --cell-w:74px;
+      --cell-h:74px;
+      --gap:8px;
+      --bg:#fff;
+      --text:#111;
+      font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+    }
+    body{background:#f8f9fb;color:var(--text);padding:28px}
+    h1{font-size:28px;margin:0 0 12px}
+    .wrap{display:flex;gap:18px;align-items:flex-start}
+
+    /* Legend column */
+    .sidebar{width:320px}
+    .legend{background:#fff;padding:14px;border-radius:6px;box-shadow:0 6px 20px rgba(18,24,40,.06)}
+    .legend h2{font-size:16px;margin:0 0 8px}
+    .legend .item{display:flex;align-items:center;gap:10px;margin:6px 0}
+    .swatch{width:46px;height:28px;border-radius:4px;box-shadow:inset 0 -2px 0 rgba(0,0,0,.06)}
+
+    /* Periodic grid area */
+    .board{background:#fff;padding:18px;border-radius:6px;box-shadow:0 6px 20px rgba(18,24,40,.06);flex:1}
+    .grid{display:grid;grid-template-columns:repeat(18, var(--cell-w));grid-auto-rows:var(--cell-h);gap:var(--gap);position:relative}
+
+    .element{background:rgba(255,255,255,.9);border-radius:6px;border:1px solid rgba(0,0,0,.06);display:flex;flex-direction:column;justify-content:space-between;padding:8px;box-sizing:border-box;font-weight:600;cursor:pointer}
+    .element .num{font-size:12px;opacity:.8}
+    .element .sym{font-size:22px;line-height:1}
+    .element .name{font-size:11px;opacity:.9}
+
+    /* categories (colors approximate the image) */
+    .alkali{background:#ffe9d6}
+    .alkaline{background:#fff3b8}
+    .transition{background:#e8e8ff}
+    .post-transition{background:#ffdede}
+    .metalloid{background:#fff2d1}
+    .halogen{background:#d8f6df}
+    .noble{background:#dff3ff}
+    .other-nonmetal{background:#ffd9cc}
+    .lanth{background:#f3ffd8}
+    .actin{background:#dff0ff}
+
+    /* small helper labels */
+    .title-center{grid-column:4 / span 11;grid-row:1;display:flex;align-items:center;justify-content:center;padding:8px 0;font-size:14px;}
+
+    /* footer rows for lanth/actin heading */
+    .series-label{grid-column:1 / span 3;display:flex;align-items:center}
+
+    /* tooltip */
+    .tooltip{position:absolute;background:#111;color:#fff;padding:8px 10px;border-radius:6px;font-size:13px;pointer-events:none;opacity:0;transform:translateY(-6px);transition:all .12s}
+
+    /* responsive */
+    @media (max-width:1100px){:root{--cell-w:54px;--cell-h:54px} .sidebar{display:none}}
+  </style>
+</head>
+<body>
+  <h1>Interactive Periodic Table</h1>
+  <div class="wrap">
+    <aside class="sidebar">
+      <div class="legend">
+        <h2>Legend</h2>
+        <div class="item"><div class="swatch alkali"></div><div>Alkali metals</div></div>
+        <div class="item"><div class="swatch alkaline"></div><div>Alkaline-earth metals</div></div>
+        <div class="item"><div class="swatch transition"></div><div>Transition metals</div></div>
+        <div class="item"><div class="swatch lanth"></div><div>Lanthanides</div></div>
+        <div class="item"><div class="swatch actin"></div><div>Actinides</div></div>
+        <div class="item"><div class="swatch metalloid"></div><div>Metalloids</div></div>
+        <div class="item"><div class="swatch halogen"></div><div>Halogens</div></div>
+        <div class="item"><div class="swatch noble"></div><div>Noble gases</div></div>
+        <div style="margin-top:10px;font-size:13px;opacity:.9">Click an element to see details. Hover to preview.</div>
+      </div>
+    </aside>
+
+    <main class="board">
+      <div class="grid" id="grid">
+        <div class="title-center">To learn an element's name, atomic number, electron configuration, atomic weight, and more, select the element from the table.</div>
+      </div>
+      <div class="tooltip" id="tooltip"></div>
+    </main>
+  </div>
+
+  <script>
+    const elements = [
+      /* period 1 */
+      {n:1,s:'H',name:'Hydrogen',cat:'other-nonmetal',col:1,row:1},
+      {n:2,s:'He',name:'Helium',cat:'noble',col:18,row:1},
+      /* period 2 */
+      {n:3,s:'Li',name:'Lithium',cat:'alkali',col:1,row:2},{n:4,s:'Be',name:'Beryllium',cat:'alkaline',col:2,row:2},
+      {n:5,s:'B',name:'Boron',cat:'metalloid',col:13,row:2},{n:6,s:'C',name:'Carbon',cat:'other-nonmetal',col:14,row:2},{n:7,s:'N',name:'Nitrogen',cat:'other-nonmetal',col:15,row:2},{n:8,s:'O',name:'Oxygen',cat:'other-nonmetal',col:16,row:2},{n:9,s:'F',name:'Fluorine',cat:'halogen',col:17,row:2},{n:10,s:'Ne',name:'Neon',cat:'noble',col:18,row:2},
+      /* period 3 */
+      {n:11,s:'Na',name:'Sodium',cat:'alkali',col:1,row:3},{n:12,s:'Mg',name:'Magnesium',cat:'alkaline',col:2,row:3},
+      {n:13,s:'Al',name:'Aluminum',cat:'post-transition',col:13,row:3},{n:14,s:'Si',name:'Silicon',cat:'metalloid',col:14,row:3},{n:15,s:'P',name:'Phosphorus',cat:'other-nonmetal',col:15,row:3},{n:16,s:'S',name:'Sulfur',cat:'other-nonmetal',col:16,row:3},{n:17,s:'Cl',name:'Chlorine',cat:'halogen',col:17,row:3},{n:18,s:'Ar',name:'Argon',cat:'noble',col:18,row:3},
+      /* period 4 */
+      {n:19,s:'K',name:'Potassium',cat:'alkali',col:1,row:4},{n:20,s:'Ca',name:'Calcium',cat:'alkaline',col:2,row:4},
+      {n:21,s:'Sc',name:'Scandium',cat:'transition',col:3,row:4},{n:22,s:'Ti',name:'Titanium',cat:'transition',col:4,row:4},{n:23,s:'V',name:'Vanadium',cat:'transition',col:5,row:4},{n:24,s:'Cr',name:'Chromium',cat:'transition',col:6,row:4},{n:25,s:'Mn',name:'Manganese',cat:'transition',col:7,row:4},{n:26,s:'Fe',name:'Iron',cat:'transition',col:8,row:4},{n:27,s:'Co',name:'Cobalt',cat:'transition',col:9,row:4},{n:28,s:'Ni',name:'Nickel',cat:'transition',col:10,row:4},{n:29,s:'Cu',name:'Copper',cat:'transition',col:11,row:4},{n:30,s:'Zn',name:'Zinc',cat:'transition',col:12,row:4},
+      {n:31,s:'Ga',name:'Gallium',cat:'post-transition',col:13,row:4},{n:32,s:'Ge',name:'Germanium',cat:'metalloid',col:14,row:4},{n:33,s:'As',name:'Arsenic',cat:'metalloid',col:15,row:4},{n:34,s:'Se',name:'Selenium',cat:'other-nonmetal',col:16,row:4},{n:35,s:'Br',name:'Bromine',cat:'halogen',col:17,row:4},{n:36,s:'Kr',name:'Krypton',cat:'noble',col:18,row:4},
+      /* period 5 */
+      {n:37,s:'Rb',name:'Rubidium',cat:'alkali',col:1,row:5},{n:38,s:'Sr',name:'Strontium',cat:'alkaline',col:2,row:5},{n:39,s:'Y',name:'Yttrium',cat:'transition',col:3,row:5},{n:40,s:'Zr',name:'Zirconium',cat:'transition',col:4,row:5},{n:41,s:'Nb',name:'Niobium',cat:'transition',col:5,row:5},{n:42,s:'Mo',name:'Molybdenum',cat:'transition',col:6,row:5},{n:43,s:'Tc',name:'Technetium',cat:'transition',col:7,row:5},{n:44,s:'Ru',name:'Ruthenium',cat:'transition',col:8,row:5},{n:45,s:'Rh',name:'Rhodium',cat:'transition',col:9,row:5},{n:46,s:'Pd',name:'Palladium',cat:'transition',col:10,row:5},{n:47,s:'Ag',name:'Silver',cat:'transition',col:11,row:5},{n:48,s:'Cd',name:'Cadmium',cat:'transition',col:12,row:5},{n:49,s:'In',name:'Indium',cat:'post-transition',col:13,row:5},{n:50,s:'Sn',name:'Tin',cat:'post-transition',col:14,row:5},{n:51,s:'Sb',name:'Antimony',cat:'metalloid',col:15,row:5},{n:52,s:'Te',name:'Tellurium',cat:'metalloid',col:16,row:5},{n:53,s:'I',name:'Iodine',cat:'halogen',col:17,row:5},{n:54,s:'Xe',name:'Xenon',cat:'noble',col:18,row:5},
+      /* period 6 main block */
+      {n:55,s:'Cs',name:'Cesium',cat:'alkali',col:1,row:6},{n:56,s:'Ba',name:'Barium',cat:'alkaline',col:2,row:6},{n:57,s:'La',name:'Lanthanum',cat:'lanth',col:3,row:6},
+      {n:72,s:'Hf',name:'Hafnium',cat:'transition',col:4,row:6},{n:73,s:'Ta',name:'Tantalum',cat:'transition',col:5,row:6},{n:74,s:'W',name:'Tungsten',cat:'transition',col:6,row:6},{n:75,s:'Re',name:'Rhenium',cat:'transition',col:7,row:6},{n:76,s:'Os',name:'Osmium',cat:'transition',col:8,row:6},{n:77,s:'Ir',name:'Iridium',cat:'transition',col:9,row:6},{n:78,s:'Pt',name:'Platinum',cat:'transition',col:10,row:6},{n:79,s:'Au',name:'Gold',cat:'transition',col:11,row:6},{n:80,s:'Hg',name:'Mercury',cat:'transition',col:12,row:6},{n:81,s:'Tl',name:'Thallium',cat:'post-transition',col:13,row:6},{n:82,s:'Pb',name:'Lead',cat:'post-transition',col:14,row:6},{n:83,s:'Bi',name:'Bismuth',cat:'post-transition',col:15,row:6},{n:84,s:'Po',name:'Polonium',cat:'metalloid',col:16,row:6},{n:85,s:'At',name:'Astatine',cat:'halogen',col:17,row:6},{n:86,s:'Rn',name:'Radon',cat:'noble',col:18,row:6},
+      /* period 7 main block */
+      {n:87,s:'Fr',name:'Francium',cat:'alkali',col:1,row:7},{n:88,s:'Ra',name:'Radium',cat:'alkaline',col:2,row:7},{n:89,s:'Ac',name:'Actinium',cat:'actin',col:3,row:7},
+      {n:104,s:'Rf',name:'Rutherfordium',cat:'transition',col:4,row:7},{n:105,s:'Db',name:'Dubnium',cat:'transition',col:5,row:7},{n:106,s:'Sg',name:'Seaborgium',cat:'transition',col:6,row:7},{n:107,s:'Bh',name:'Bohrium',cat:'transition',col:7,row:7},{n:108,s:'Hs',name:'Hassium',cat:'transition',col:8,row:7},{n:109,s:'Mt',name:'Meitnerium',cat:'transition',col:9,row:7},{n:110,s:'Ds',name:'Darmstadtium',cat:'transition',col:10,row:7},{n:111,s:'Rg',name:'Roentgenium',cat:'transition',col:11,row:7},{n:112,s:'Cn',name:'Copernicium',cat:'transition',col:12,row:7},{n:113,s:'Nh',name:'Nihonium',cat:'post-transition',col:13,row:7},{n:114,s:'Fl',name:'Flerovium',cat:'post-transition',col:14,row:7},{n:115,s:'Mc',name:'Moscovium',cat:'post-transition',col:15,row:7},{n:116,s:'Lv',name:'Livermorium',cat:'post-transition',col:16,row:7},{n:117,s:'Ts',name:'Tennessine',cat:'halogen',col:17,row:7},{n:118,s:'Og',name:'Oganesson',cat:'noble',col:18,row:7},
+
+      /* lanthanides 58-71 placed in separate row starting col 4 */
+    ];
+
+    // add lanthanides 58-71
+    const lanth = [
+      {n:58,s:'Ce',name:'Cerium'},{n:59,s:'Pr',name:'Praseodymium'},{n:60,s:'Nd',name:'Neodymium'},{n:61,s:'Pm',name:'Promethium'},{n:62,s:'Sm',name:'Samarium'},{n:63,s:'Eu',name:'Europium'},{n:64,s:'Gd',name:'Gadolinium'},{n:65,s:'Tb',name:'Terbium'},{n:66,s:'Dy',name:'Dysprosium'},{n:67,s:'Ho',name:'Holmium'},{n:68,s:'Er',name:'Erbium'},{n:69,s:'Tm',name:'Thulium'},{n:70,s:'Yb',name:'Ytterbium'},{n:71,s:'Lu',name:'Lutetium'}
+    ];
+    lanth.forEach((el,i)=>elements.push(Object.assign({},el,{cat:'lanth',col:4+i,row:8})));
+
+    // actinides 90-103 row 9
+    const act = [
+      {n:90,s:'Th',name:'Thorium'},{n:91,s:'Pa',name:'Protactinium'},{n:92,s:'U',name:'Uranium'},{n:93,s:'Np',name:'Neptunium'},{n:94,s:'Pu',name:'Plutonium'},{n:95,s:'Am',name:'Americium'},{n:96,s:'Cm',name:'Curium'},{n:97,s:'Bk',name:'Berkelium'},{n:98,s:'Cf',name:'Californium'},{n:99,s:'Es',name:'Einsteinium'},{n:100,s:'Fm',name:'Fermium'},{n:101,s:'Md',name:'Mendelevium'},{n:102,s:'No',name:'Nobelium'},{n:103,s:'Lr',name:'Lawrencium'}
+    ];
+    act.forEach((el,i)=>elements.push(Object.assign({},el,{cat:'actin',col:4+i,row:9})));
+
+    // render
+    const grid = document.getElementById('grid');
+    const tooltip = document.getElementById('tooltip');
+
+    elements.forEach(el =>{
+      const d = document.createElement('div');
+      d.className = 'element '+(el.cat||'');
+      d.style.gridColumn = el.col;
+      d.style.gridRow = el.row;
+      d.innerHTML = `<div class="num">${el.n}</div><div class="sym">${el.s}</div><div class="name">${el.name}</div>`;
+
+      d.addEventListener('mouseenter', (ev)=>{
+        tooltip.style.opacity = 1;
+        tooltip.style.left = (ev.pageX + 12) + 'px';
+        tooltip.style.top = (ev.pageY + 12) + 'px';
+        tooltip.innerHTML = `<strong>${el.name} (${el.s})</strong><br>Atomic number: ${el.n}`;
+      });
+      d.addEventListener('mousemove', (ev)=>{
+        tooltip.style.left = (ev.pageX + 12) + 'px';
+        tooltip.style.top = (ev.pageY + 12) + 'px';
+      });
+      d.addEventListener('mouseleave', ()=>{tooltip.style.opacity = 0});
+      d.addEventListener('click', ()=>{
+        alert(`${el.name} — ${el.s}\nAtomic number: ${el.n}`);
+      });
+      grid.appendChild(d);
+    });
+
+    // create row labels for lanth/actin indicators
+    const label1 = document.createElement('div');label1.className='series-label';label1.style.gridRow=8;label1.style.gridColumn='1/4';label1.textContent='lanthanoid series 6';grid.appendChild(label1);
+    const label2 = document.createElement('div');label2.className='series-label';label2.style.gridRow=9;label2.style.gridColumn='1/4';label2.textContent='actinoid series 7';grid.appendChild(label2);
+
+  </script>
+</body>
+</html>
